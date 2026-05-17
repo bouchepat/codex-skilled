@@ -9,4 +9,6 @@ workspace-data/
 mysql-data/
 redis-data/
 *.log
-
+.agents
+.browser*
+.venv*
