@@ -1,0 +1,73 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-codex_skilled}
+      MYSQL_USER: ${MYSQL_USER:-codex}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-codex-password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-codex}:${MYSQL_PASSWORD:-codex-password}@mysql:3306/${MYSQL_DATABASE:-codex_skilled}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      WORKSPACE_ROOT: /workspace-data
+      HOST_RUNNER_URL: ${HOST_RUNNER_URL:-http://host.docker.internal:4317}
+      RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./workspace-data:/workspace-data
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    environment:
+      NG_APP_API_URL: ${NG_APP_API_URL:-http://localhost:3000}
+      NG_APP_FIREBASE_API_KEY: ${NG_APP_FIREBASE_API_KEY}
+      NG_APP_FIREBASE_AUTH_DOMAIN: ${NG_APP_FIREBASE_AUTH_DOMAIN}
+      NG_APP_FIREBASE_PROJECT_ID: ${NG_APP_FIREBASE_PROJECT_ID}
+      NG_APP_FIREBASE_APP_ID: ${NG_APP_FIREBASE_APP_ID:-}
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  redis_data:

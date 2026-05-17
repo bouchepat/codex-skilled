@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.angular/
+.env
+.env.local
+backend/generated/
+workspace-data/
+mysql-data/
+redis-data/
+*.log
+

@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppStatus {
+  ENABLED
+  COMING_SOON
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FileKind {
+  UPLOAD
+  GENERATED
+  EDITABLE
+}
+
+model User {
+  id              String      @id @default(cuid())
+  firebaseUid     String      @unique
+  email           String
+  displayName     String?
+  photoUrl        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  workspaces      Workspace[]
+  sessions        Session[]
+  jobs            AgentJob[]
+}
+
+model AppDefinition {
+  id          String      @id
+  name        String
+  description String
+  status      AppStatus
+  policy      Json
+  createdAt   DateTime    @default(now())
+  workspaces  Workspace[]
+  sessions    Session[]
+}
+
+model Workspace {
+  id        String          @id @default(cuid())
+  userId    String
+  appId     String
+  name      String
+  rootPath  String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id])
+  app       AppDefinition   @relation(fields: [appId], references: [id])
+  files     WorkspaceFile[]
+  sessions  Session[]
+
+  @@unique([userId, appId, name])
+}
+
+model WorkspaceFile {
+  id          String     @id @default(cuid())
+  workspaceId String
+  kind        FileKind
+  path        String
+  mimeType    String?
+  sizeBytes   BigInt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id])
+  artifacts   Artifact[]
+
+  @@unique([workspaceId, path])
+}
+
+model Session {
+  id          String             @id @default(cuid())
+  userId      String
+  appId       String
+  workspaceId String
+  title       String
+  status      JobStatus          @default(QUEUED)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  user        User               @relation(fields: [userId], references: [id])
+  app         AppDefinition      @relation(fields: [appId], references: [id])
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
+  iterations  SessionIteration[]
+  jobs        AgentJob[]
+}
+
+model SessionIteration {
+  id        String     @id @default(cuid())
+  sessionId String
+  version   Int
+  prompt    String     @db.Text
+  inputRefs Json
+  outputRefs Json
+  createdAt DateTime   @default(now())
+  session   Session    @relation(fields: [sessionId], references: [id])
+  jobs      AgentJob[]
+
+  @@unique([sessionId, version])
+}
+
+model AgentJob {
+  id          String            @id @default(cuid())
+  userId      String
+  sessionId   String
+  iterationId String?
+  provider    String
+  status      JobStatus         @default(QUEUED)
+  prompt      String            @db.Text
+  logs        Json
+  error       String?           @db.Text
+  createdAt   DateTime          @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  user        User              @relation(fields: [userId], references: [id])
+  session     Session           @relation(fields: [sessionId], references: [id])
+  iteration   SessionIteration? @relation(fields: [iterationId], references: [id])
+  artifacts   Artifact[]
+}
+
+model Artifact {
+  id        String         @id @default(cuid())
+  jobId     String
+  fileId    String
+  label     String
+  createdAt DateTime       @default(now())
+  job       AgentJob        @relation(fields: [jobId], references: [id])
+  file      WorkspaceFile   @relation(fields: [fileId], references: [id])
+}
