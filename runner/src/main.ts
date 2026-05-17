@@ -1,6 +1,9 @@
 import express from 'express';
 import { runAgentJob } from './agent-runner.js';
 import { RunnerJobRequest } from './types.js';
+import { applyRunnerRuntimeEnv } from './runtime-env.js';
+
+applyRunnerRuntimeEnv();
 
 const app = express();
 const port = Number(process.env.RUNNER_PORT ?? 4317);
@@ -32,6 +35,5 @@ app.post('/jobs', async (request, response) => {
 });
 
 app.listen(port, () => {
-  console.log(`Host runner listening on http://localhost:${port}`);
+  console.log(`Runner listening on http://localhost:${port}`);
 });
-

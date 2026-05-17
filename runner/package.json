@@ -7,7 +7,7 @@
     "dev": "tsx src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "test": "node --test dist/cli-command.test.js dist/workspace-paths.test.js dist/pdf-report.test.js"
+    "test": "node --test dist/cli-command.test.js dist/workspace-paths.test.js dist/pdf-report.test.js dist/runtime-env.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -41,7 +41,8 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       WORKSPACE_ROOT: /workspace-data
-      HOST_RUNNER_URL: ${HOST_RUNNER_URL:-http://host.docker.internal:4317}
+      RUNNER_URL: ${RUNNER_URL:-http://runner:4317}
+      HOST_RUNNER_URL: ${HOST_RUNNER_URL:-http://runner:4317}
       RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
     ports:
       - "3000:3000"
@@ -68,6 +69,32 @@ services:
     depends_on:
       - backend
 
+  runner:
+    build:
+      context: ./runner
+    profiles:
+      - linux
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUNNER_PORT: 4317
+      CONTAINER_WORKSPACE_ROOT: /workspace-data
+      RUNNER_CLI_BIN_DIRS: ${RUNNER_CLI_BIN_DIRS:-/opt/agent-cli/bin}
+      RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
+    volumes:
+      - ./workspace-data:/workspace-data
+      - runner_state:/root
+      - ${RUNNER_CLI_HOST_BIN_DIR:?RUNNER_CLI_HOST_BIN_DIR must point to the host CLI bin directory}:/opt/agent-cli/bin:ro
+    expose:
+      - "4317"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4317/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   mysql_data:
   redis_data:
+  runner_state:

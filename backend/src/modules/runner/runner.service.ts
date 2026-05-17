@@ -14,10 +14,10 @@ export class RunnerService {
   }
 
   async run(input: RunnerJobRequest): Promise<RunnerJobResult> {
-    const runnerUrl = this.config.get<string>('HOST_RUNNER_URL');
+    const runnerUrl = this.config.get<string>('RUNNER_URL') ?? this.config.get<string>('HOST_RUNNER_URL');
     const sharedSecret = this.config.get<string>('RUNNER_SHARED_SECRET');
     if (!runnerUrl || !sharedSecret) {
-      throw new ServiceUnavailableException('Host runner is not configured.');
+      throw new ServiceUnavailableException('Runner is not configured.');
     }
 
     const response = await fetch(`${runnerUrl.replace(/\/$/, '')}/jobs`, {
@@ -30,10 +30,9 @@ export class RunnerService {
     });
 
     if (!response.ok) {
-      throw new ServiceUnavailableException(`Host runner rejected job with ${response.status}.`);
+      throw new ServiceUnavailableException(`Runner rejected job with ${response.status}.`);
     }
 
     return (await response.json()) as RunnerJobResult;
   }
 }
-

@@ -48,3 +48,13 @@ npm run dev
 ```
 
 The backend calls the host runner at `HOST_RUNNER_URL`.
+
+## Linux Deployment
+
+The production-style Linux deployment is the full Docker Compose stack:
+
+```powershell
+docker compose --profile linux up --build
+```
+
+For the runner container to execute Codex and Claude jobs, set `RUNNER_CLI_HOST_BIN_DIR` to the Linux host directory that contains the CLI binaries and keep `RUNNER_CLI_BIN_DIRS=/opt/agent-cli/bin` in the compose environment. The runner container mounts the host bin directory into `/opt/agent-cli/bin` and persists CLI auth state in the `runner_state` volume.

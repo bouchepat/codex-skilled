@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { buildRunnerSpawnEnv } from './runtime-env.js';
 
 export interface ProcessResult {
   exitCode: number | null;
@@ -11,7 +12,7 @@ export function runProcess(command: string, args: string[], options: { cwd: stri
     const child = spawn(command, args, {
       cwd: options.cwd,
       shell: process.platform === 'win32',
-      env: process.env
+      env: buildRunnerSpawnEnv()
     });
     const timeout = setTimeout(() => {
       child.kill();
@@ -38,4 +39,3 @@ export function runProcess(command: string, args: string[], options: { cwd: stri
     child.stdin.end(options.stdin);
   });
 }
-

@@ -10,7 +10,8 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       WORKSPACE_ROOT: /workspace-data
-      HOST_RUNNER_URL: ${HOST_RUNNER_URL:-http://host.docker.internal:4317}
+      RUNNER_URL: http://host.docker.internal:4317
+      HOST_RUNNER_URL: http://host.docker.internal:4317
       RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
