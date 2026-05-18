@@ -95,6 +95,8 @@ model Session {
   workspace   Workspace          @relation(fields: [workspaceId], references: [id])
   iterations  SessionIteration[]
   jobs        AgentJob[]
+
+  @@index([userId, workspaceId])
 }
 
 model SessionIteration {
@@ -128,6 +130,9 @@ model AgentJob {
   session     Session           @relation(fields: [sessionId], references: [id])
   iteration   SessionIteration? @relation(fields: [iterationId], references: [id])
   artifacts   Artifact[]
+
+  @@index([userId, createdAt])
+  @@index([userId, sessionId, createdAt])
 }
 
 model Artifact {

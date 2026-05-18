@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { JobStatus } from '@prisma/client';
 import { Queue } from 'bullmq';
 import path from 'node:path';
@@ -7,6 +7,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { AGENT_QUEUE } from './jobs.constants';
 import { AppExecutionPolicy } from '../apps/app-policy';
+
+const JOB_LIST_LIMIT = 200;
+const JOB_LIST_SELECT = {
+  id: true,
+  userId: true,
+  sessionId: true,
+  iterationId: true,
+  provider: true,
+  status: true,
+  prompt: true,
+  error: true,
+  createdAt: true,
+  startedAt: true,
+  finishedAt: true,
+  artifacts: { include: { file: true } }
+} as const;
 
 @Injectable()
 export class JobsService {
@@ -58,7 +74,7 @@ export class JobsService {
         prompt,
         inputFiles,
         workspacePath: session.workspace.rootPath,
-        sessionPath: path.join(session.workspace.rootPath, 'sessions', sessionId),
+        sessionPath: path.join(session.workspace.rootPath, provider, sessionId),
         appId: session.appId,
         appName: session.app.name,
         appPolicy: policy
@@ -73,11 +89,43 @@ export class JobsService {
     return job;
   }
 
-  async list(userId: string) {
-    return this.prisma.agentJob.findMany({
+  async list(userId: string, workspaceId?: string) {
+    if (workspaceId) {
+      const sessions = await this.prisma.session.findMany({
+        where: { userId, workspaceId },
+        select: { id: true }
+      });
+      const sessionIds = sessions.map((session) => session.id);
+      if (sessionIds.length === 0) {
+        return [];
+      }
+
+      const jobs = await this.prisma.agentJob.findMany({
+        where: { userId, sessionId: { in: sessionIds } },
+        select: JOB_LIST_SELECT,
+        orderBy: { createdAt: 'desc' },
+        take: JOB_LIST_LIMIT
+      });
+      return jobs.map((job) => ({ ...job, logs: [] }));
+    }
+
+    const jobs = await this.prisma.agentJob.findMany({
       where: { userId },
-      include: { artifacts: { include: { file: true } } },
-      orderBy: { createdAt: 'desc' }
+      select: JOB_LIST_SELECT,
+      orderBy: { createdAt: 'desc' },
+      take: JOB_LIST_LIMIT
     });
+    return jobs.map((job) => ({ ...job, logs: [] }));
+  }
+
+  async getOwnedJob(userId: string, jobId: string) {
+    const job = await this.prisma.agentJob.findFirst({
+      where: { id: jobId, userId },
+      include: { artifacts: { include: { file: true } } }
+    });
+    if (!job) {
+      throw new NotFoundException('Job not found.');
+    }
+    return job;
   }
 }
