@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-codex_skilled}
@@ -12,7 +13,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -20,12 +21,13 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -34,6 +36,7 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    container_name: backend
     env_file:
       - .env
     environment:
@@ -58,6 +61,7 @@ services:
     build:
       context: ./frontend
     restart: unless-stopped
+    container_name: frontend
     environment:
       NG_APP_API_URL: ${NG_APP_API_URL:-http://localhost:3000}
       NG_APP_FIREBASE_API_KEY: ${NG_APP_FIREBASE_API_KEY}
@@ -75,6 +79,7 @@ services:
     profiles:
       - linux
     restart: unless-stopped
+    container_name: runner
     env_file:
       - .env
     environment:
@@ -82,17 +87,41 @@ services:
       CONTAINER_WORKSPACE_ROOT: /workspace-data
       RUNNER_CLI_BIN_DIRS: ${RUNNER_CLI_BIN_DIRS:-/opt/agent-cli/bin}
       RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
+      RUNNER_JOB_TIMEOUT_MS: ${RUNNER_JOB_TIMEOUT_MS:-900000}
+      RUNNER_AGENT_CODEX_HOME_HOST_DIR: ${RUNNER_AGENT_CODEX_HOME_HOST_DIR:-}
+      RUNNER_AGENT_CLAUDE_HOME_HOST_DIR: ${RUNNER_AGENT_CLAUDE_HOME_HOST_DIR:-}
     volumes:
       - ./workspace-data:/workspace-data
       - runner_state:/root
       - ${RUNNER_CLI_HOST_BIN_DIR:?RUNNER_CLI_HOST_BIN_DIR must point to the host CLI bin directory}:/opt/agent-cli/bin:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - "4317"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:4317/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:4317/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
+
+  market-research-codex-image:
+    build:
+      context: ./runner
+      dockerfile: Dockerfile.market-research-codex
+    image: codex-skilled/market-research-codex:local
+    container_name: market-research-codex-image
+    profiles:
+      - agent-images
+    command: [ "true" ]
+
+  market-research-claude-image:
+    build:
+      context: ./runner
+      dockerfile: Dockerfile.market-research-claude
+    image: codex-skilled/market-research-claude:local
+    container_name: market-research-claude-image
+    profiles:
+      - agent-images
+    command: [ "true" ]
 
 volumes:
   mysql_data:

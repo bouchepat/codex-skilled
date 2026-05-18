@@ -13,6 +13,12 @@ Recommended Linux container contract:
 - mount `workspace-data` so session folders and artifacts are shared with the backend
 - start the stack with `docker compose --profile linux up --build`
 
+Skill workflow:
+
+- Keep app-specific skills in `runner/skills` for the image build.
+- Sync installed marketplace or shared skills from `.codex/skills` and `.agents/skills` with `npm run sync:skills`.
+- Rebuild the runner images after syncing so the new skills are baked into the container.
+
 Security rules to preserve:
 
 - Accept requests only from the backend using `RUNNER_SHARED_SECRET`.

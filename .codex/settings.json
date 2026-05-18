@@ -1,0 +1,9 @@
+﻿{
+  "project": "codex-skilled",
+  "instructionFile": "AGENTS.md",
+  "skillsPath": ".codex/skills",
+  "notes": [
+    "Project-level .agents exists but currently has a Windows deny ACL for sandbox writes.",
+    "Keep reusable project workflows in .codex/skills unless .agents becomes writable."
+  ]
+}

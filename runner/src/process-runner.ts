@@ -7,7 +7,15 @@ export interface ProcessResult {
   stderr: string;
 }
 
-export function runProcess(command: string, args: string[], options: { cwd: string; stdin: string; timeoutMs: number }): Promise<ProcessResult> {
+export interface RunProcessOptions {
+  cwd: string;
+  stdin: string;
+  timeoutMs: number;
+  onStdoutLine?: (line: string) => void;
+  onStderrLine?: (line: string) => void;
+}
+
+export function runProcess(command: string, args: string[], options: RunProcessOptions): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
@@ -20,15 +28,25 @@ export function runProcess(command: string, args: string[], options: { cwd: stri
     }, options.timeoutMs);
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
+    let stdoutBuffer = '';
+    let stderrBuffer = '';
 
-    child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
-    child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdout.push(chunk);
+      stdoutBuffer = consumeLines(stdoutBuffer + chunk.toString('utf8'), options.onStdoutLine);
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr.push(chunk);
+      stderrBuffer = consumeLines(stderrBuffer + chunk.toString('utf8'), options.onStderrLine);
+    });
     child.on('error', (error) => {
       clearTimeout(timeout);
       reject(error);
     });
     child.on('close', (exitCode) => {
       clearTimeout(timeout);
+      flushLine(stdoutBuffer, options.onStdoutLine);
+      flushLine(stderrBuffer, options.onStderrLine);
       resolve({
         exitCode,
         stdout: Buffer.concat(stdout).toString('utf8'),
@@ -38,4 +56,22 @@ export function runProcess(command: string, args: string[], options: { cwd: stri
 
     child.stdin.end(options.stdin);
   });
+}
+
+function consumeLines(buffer: string, onLine?: (line: string) => void): string {
+  const segments = buffer.split(/\r?\n/);
+  const remainder = segments.pop() ?? '';
+  for (const line of segments) {
+    if (line.trim()) {
+      onLine?.(line);
+    }
+  }
+  return remainder;
+}
+
+function flushLine(buffer: string, onLine?: (line: string) => void): void {
+  const line = buffer.trim();
+  if (line) {
+    onLine?.(line);
+  }
 }

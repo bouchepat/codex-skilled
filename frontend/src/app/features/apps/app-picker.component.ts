@@ -7,38 +7,38 @@ import { ApiService, AppDefinition, Workspace } from '../../shared/api.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="d-flex flex-column gap-4">
-      <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+    <section class="page-stack app-picker-page">
+      <div class="page-header">
         <div>
-          <h1 class="h2 fw-semibold mb-2">Choose an agent app</h1>
-          <p class="muted mb-0">Start with Market Research, then extend the same workspace model to image and video workflows.</p>
+          <p class="section-kicker">Codex Skilled</p>
+          <h1>Choose an agent app</h1>
+          <p>Start with Market Research, then extend the same workspace model to image and video workflows.</p>
         </div>
-        <button type="button" class="btn btn-outline-primary" (click)="refresh()">Refresh</button>
+        <button type="button" class="btn-console btn-secondary-console" (click)="refresh()">Refresh</button>
       </div>
 
       @if (error()) {
-        <div class="alert alert-danger">{{ error() }}</div>
+        <div class="alert-console alert-danger-console">{{ error() }}</div>
       }
 
-      <div class="row g-3">
+      <div class="app-catalog">
         @for (app of apps(); track app.id) {
-          <div class="col-12 col-md-6 col-xl-4">
-            <button
-              type="button"
-              class="surface app-card text-start w-100 p-4 border-1"
-              [class.enabled]="app.status === 'ENABLED'"
-              [disabled]="app.status !== 'ENABLED'"
-              (click)="openApp(app)"
-            >
-              <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                <h2 class="h5 fw-semibold mb-0">{{ app.name }}</h2>
-                <span class="badge" [class.text-bg-primary]="app.status === 'ENABLED'" [class.text-bg-secondary]="app.status !== 'ENABLED'">
-                  {{ app.status === 'ENABLED' ? 'Enabled' : 'Coming soon' }}
-                </span>
-              </div>
-              <p class="muted mb-0">{{ app.description }}</p>
-            </button>
-          </div>
+          <button
+            type="button"
+            class="app-card"
+            [class.enabled]="app.status === 'ENABLED'"
+            [disabled]="app.status !== 'ENABLED'"
+            (click)="openApp(app)"
+          >
+            <span class="app-glyph">{{ appGlyph(app.id) }}</span>
+            <span class="app-card-copy">
+              <span class="app-card-title">{{ app.name }}</span>
+              <span>{{ app.description }}</span>
+            </span>
+            <span class="status-chip" [class.status-enabled]="app.status === 'ENABLED'" [class.status-disabled]="app.status !== 'ENABLED'">
+              {{ app.status === 'ENABLED' ? 'Enabled' : 'Coming Soon' }}
+            </span>
+          </button>
         }
       </div>
     </section>
@@ -74,5 +74,14 @@ export class AppPickerComponent {
     workspace ??= await this.api.createWorkspace(app.id);
     await this.router.navigate(['/workspaces', workspace.id]);
   }
-}
 
+  protected appGlyph(appId: string): string {
+    if (appId.includes('image')) {
+      return 'IM';
+    }
+    if (appId.includes('video')) {
+      return 'VD';
+    }
+    return 'MR';
+  }
+}

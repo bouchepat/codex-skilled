@@ -9,18 +9,23 @@ import { AuthService } from './features/auth/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="app-shell">
-      <nav class="navbar navbar-expand-lg bg-white border-bottom">
-        <div class="container-fluid px-4">
-          <a class="navbar-brand fw-semibold" routerLink="/apps">Codex Skilled</a>
-          <div class="d-flex align-items-center gap-3">
+      <nav class="topbar">
+        <div class="brand-cluster">
+          <a class="brand-mark" routerLink="/apps" aria-label="Codex Skilled apps">
+            <span class="brand-icon">CS</span>
+            <span>Codex Skilled</span>
+          </a>
+          <span class="topbar-divider"></span>
+          <span class="workspace-context">Agent workspace console</span>
+        </div>
+        <div class="topbar-actions">
             @if (userLabel()) {
-              <span class="small muted">{{ userLabel() }}</span>
-              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="signOut()">Sign out</button>
+            <span class="user-label">{{ userLabel() }}</span>
+            <button type="button" class="btn-console btn-ghost" (click)="signOut()">Sign out</button>
             }
-          </div>
         </div>
       </nav>
-      <main class="container-fluid p-4">
+      <main class="app-main">
         <router-outlet />
       </main>
     </div>
@@ -34,4 +39,3 @@ export class AppComponent {
     void this.auth.signOut();
   }
 }
-

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AuthenticatedUser } from '../auth/authenticated-user';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
@@ -24,5 +24,9 @@ export class SessionsController {
   get(@CurrentUser() user: AuthenticatedUser, @Param('sessionId') sessionId: string) {
     return this.sessions.getOwnedSession(user.id, sessionId);
   }
-}
 
+  @Delete(':sessionId')
+  delete(@CurrentUser() user: AuthenticatedUser, @Param('sessionId') sessionId: string) {
+    return this.sessions.delete(user.id, sessionId);
+  }
+}

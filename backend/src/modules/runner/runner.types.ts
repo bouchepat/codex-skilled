@@ -29,3 +29,13 @@ export interface RunnerJobResult {
   artifacts: RunnerArtifactManifest[];
   error?: string;
 }
+
+export type RunnerStreamEvent =
+  | {
+      type: 'log';
+      line: string;
+    }
+  | {
+      type: 'result';
+      result: RunnerJobResult;
+    };

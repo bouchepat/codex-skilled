@@ -3,7 +3,7 @@ import { buildWorkspaceRootPath, slugifyEmail, slugifyWorkspaceName } from './wo
 
 describe('workspace root helpers', () => {
   it('slugifies email addresses into stable folder names', () => {
-    expect(slugifyEmail('Jane.Doe@Example.com')).toBe('jane-doe-at-example-com');
+    expect(slugifyEmail('Jane.Doe@Example.com')).toBe('jane.doe');
   });
 
   it('slugifies workspace names', () => {
@@ -13,7 +13,7 @@ describe('workspace root helpers', () => {
 
   it('builds user-scoped workspace roots', () => {
     expect(buildWorkspaceRootPath('/workspace-data', 'Jane.Doe@Example.com', 'market-research', 'Default')).toBe(
-      path.join('/workspace-data', 'jane-doe-at-example-com', 'market-research', 'default')
+      path.join('/workspace-data', 'jane.doe', 'market-research')
     );
   });
 });

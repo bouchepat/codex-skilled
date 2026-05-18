@@ -80,7 +80,11 @@ export class WorkspacesService {
     const workspace = await this.getOwnedWorkspace(userId, workspaceId);
     const relativePath = normalizeWorkspaceRelativePath(filePath);
     const absolutePath = resolveWorkspacePath(workspace.rootPath, relativePath);
-    return readFile(absolutePath, 'utf8');
+    try {
+      return await readFile(absolutePath, 'utf8');
+    } catch {
+      throw new NotFoundException('Workspace file content not found on disk.');
+    }
   }
 
   async saveUpload(userId: string, workspaceId: string, destinationPath: string, file: Express.Multer.File) {

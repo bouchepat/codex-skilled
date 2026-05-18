@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/main.ts",
+    "sync:skills": "tsx src/skill-sync.ts",
+    "prebuild": "npm run sync:skills",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "test": "node --test dist/cli-command.test.js dist/workspace-paths.test.js dist/pdf-report.test.js dist/runtime-env.test.js"
+    "test": "node --test dist/agent-runner.test.js dist/cli-command.test.js dist/container-command.test.js dist/workspace-paths.test.js dist/pdf-report.test.js dist/runtime-env.test.js dist/skill-sync.test.js dist/skills.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -21,16 +21,35 @@ app.post('/jobs', async (request, response) => {
     return;
   }
 
+  response.status(200);
+  response.setHeader('content-type', 'application/x-ndjson; charset=utf-8');
+  response.setHeader('cache-control', 'no-cache, no-transform');
+  response.setHeader('connection', 'keep-alive');
+  response.flushHeaders?.();
+
   try {
-    const result = await runAgentJob(request.body as RunnerJobRequest);
-    response.json(result);
-  } catch (error) {
-    response.status(500).json({
-      status: 'failed',
-      logs: [],
-      artifacts: [],
-      error: error instanceof Error ? error.message : String(error)
+    const result = await runAgentJob(request.body as RunnerJobRequest, {
+      onLogLine: (line) => {
+        response.write(`${JSON.stringify({ type: 'log', line })}\n`);
+      }
     });
+    response.write(`${JSON.stringify({ type: 'result', result })}\n`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Runner job failed before completion:', message);
+    response.write(
+      `${JSON.stringify({
+        type: 'result',
+        result: {
+          status: 'failed',
+          logs: [`Runner failed before invoking or completing the agent: ${message}`],
+          artifacts: [],
+          error: message
+        }
+      })}\n`
+    );
+  } finally {
+    response.end();
   }
 });
 

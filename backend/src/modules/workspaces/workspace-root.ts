@@ -5,15 +5,14 @@ export function slugifyEmail(email: string): string {
     .toLowerCase()
     .trim()
     .replace(/^mailto:/, '')
-    .replace(/@/g, '-at-')
-    .replace(/\./g, '-')
-    .replace(/[^a-z0-9_-]+/g, '-')
+    .split('@')[0]
+    .replace(/[^a-z0-9._-]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^[-_]+|[-_]+$/g, '');
 }
 
 export function buildWorkspaceRootPath(baseRoot: string, email: string, appId: string, name: string): string {
-  return path.join(baseRoot, slugifyEmail(email), appId, slugifyWorkspaceName(name));
+  return path.join(baseRoot, slugifyEmail(email), appId);
 }
 
 export function slugifyWorkspaceName(value: string): string {

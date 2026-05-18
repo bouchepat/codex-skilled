@@ -30,7 +30,9 @@ export const MARKET_RESEARCH_POLICY: AppExecutionPolicy = {
   allowedProviders: ['codex', 'claude'],
   requiredSkills: [
     { name: 'market-research', required: true },
-    { name: 'pdf', required: true }
+    { name: 'pdf', required: true },
+    { name: 'tavily-research', required: true },
+    { name: 'chart', required: false }
   ],
   requiredArtifacts: [
     { label: 'Research report', mimeType: 'text/markdown', extension: 'md' },

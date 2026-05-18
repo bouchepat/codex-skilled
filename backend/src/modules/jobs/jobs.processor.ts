@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RunnerService } from '../runner/runner.service';
 import { RunnerJobResult } from '../runner/runner.types';
 import { normalizeWorkspaceRelativePath, resolveWorkspacePath } from '../workspaces/path-scope';
+import { JobStreamService } from './job-stream.service';
 import { AGENT_QUEUE } from './jobs.constants';
 
 interface AgentQueuePayload {
@@ -32,7 +33,8 @@ interface AgentQueuePayload {
 export class JobsProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly runner: RunnerService
+    private readonly runner: RunnerService,
+    private readonly jobStreams: JobStreamService
   ) {
     super();
   }
@@ -40,13 +42,45 @@ export class JobsProcessor extends WorkerHost {
   async process(job: Job<AgentQueuePayload>): Promise<void> {
     const payload = job.data;
     await mkdir(payload.sessionPath, { recursive: true });
+    const logs: string[] = [];
+    const appendLog = async (line: string): Promise<void> => {
+      logs.push(line);
+      this.jobStreams.emit(payload.jobId, { type: 'log', line });
+      await this.prisma.agentJob.update({
+        where: { id: payload.jobId },
+        data: { logs: [...logs] }
+      });
+    };
+
     await this.prisma.agentJob.update({
       where: { id: payload.jobId },
-      data: { status: JobStatus.RUNNING, startedAt: new Date() }
+      data: {
+        status: JobStatus.RUNNING,
+        startedAt: new Date(),
+        logs: [
+          `Queued job ${payload.jobId}.`,
+          `Provider: ${payload.provider}.`,
+          `Workspace: ${payload.workspacePath}.`,
+          `Session: ${payload.sessionPath}.`,
+          'Runner request sent.'
+        ]
+      }
     });
+    logs.push(
+      `Queued job ${payload.jobId}.`,
+      `Provider: ${payload.provider}.`,
+      `Workspace: ${payload.workspacePath}.`,
+      `Session: ${payload.sessionPath}.`,
+      'Runner request sent.'
+    );
+    this.jobStreams.emit(payload.jobId, { type: 'status', status: 'RUNNING' });
 
     try {
-      const result = await this.runner.run(payload);
+      const result = await this.runner.run(payload, {
+        onLogLine: async (line) => {
+          await appendLog(line);
+        }
+      });
       await this.persistResult(payload, result);
     } catch (error) {
       await this.prisma.agentJob.update({
@@ -56,6 +90,11 @@ export class JobsProcessor extends WorkerHost {
           error: error instanceof Error ? error.message : String(error),
           finishedAt: new Date()
         }
+      });
+      this.jobStreams.emit(payload.jobId, {
+        type: 'status',
+        status: 'FAILED',
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -102,6 +141,11 @@ export class JobsProcessor extends WorkerHost {
         error: result.error,
         finishedAt: new Date()
       }
+    });
+    this.jobStreams.emit(payload.jobId, {
+      type: 'status',
+      status: result.status === 'completed' ? 'COMPLETED' : 'FAILED',
+      error: result.error
     });
     await this.prisma.session.update({
       where: { id: payload.sessionId },

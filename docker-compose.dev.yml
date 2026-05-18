@@ -4,14 +4,15 @@ services:
       context: ./backend
       target: deps
     command: npm run start:dev
+    container_name: backend
     environment:
       NODE_ENV: development
       DATABASE_URL: mysql://${MYSQL_USER:-codex}:${MYSQL_PASSWORD:-codex-password}@mysql:3306/${MYSQL_DATABASE:-codex_skilled}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       WORKSPACE_ROOT: /workspace-data
-      RUNNER_URL: http://host.docker.internal:4317
-      HOST_RUNNER_URL: http://host.docker.internal:4317
+      RUNNER_URL: http://runner:4317
+      HOST_RUNNER_URL: http://runner:4317
       RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
@@ -19,6 +20,41 @@ services:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
       - ./workspace-data:/workspace-data
+
+  runner:
+    build:
+      context: ./runner
+      target: deps
+    profiles: !override []
+    container_name: runner
+    command:
+      - sh
+      - -c
+      - |
+        test -d node_modules/pdfkit || npm install
+        npm run dev
+    environment:
+      RUNNER_PORT: 4317
+      CONTAINER_WORKSPACE_ROOT: /workspace-data
+      HOST_WORKSPACE_ROOT: ${HOST_WORKSPACE_ROOT:-}
+      RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-change-me}
+      RUNNER_JOB_TIMEOUT_MS: ${RUNNER_JOB_TIMEOUT_MS:-900000}
+      RUNNER_USE_AGENT_CONTAINERS: ${RUNNER_USE_AGENT_CONTAINERS:-true}
+      RUNNER_CLI_HOST_BIN_DIR: ${RUNNER_CLI_HOST_BIN_DIR}
+      RUNNER_AGENT_CODEX_HOME_HOST_DIR: ${RUNNER_AGENT_CODEX_HOME_HOST_DIR:-}
+      RUNNER_AGENT_CLAUDE_HOME_HOST_DIR: ${RUNNER_AGENT_CLAUDE_HOME_HOST_DIR:-}
+      RUNNER_CODEX_IMAGE: ${RUNNER_CODEX_IMAGE:-codex-skilled/market-research-codex:local}
+      RUNNER_CLAUDE_IMAGE: ${RUNNER_CLAUDE_IMAGE:-codex-skilled/market-research-claude:local}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "4317:4317"
+    volumes: !override
+      - ./runner:/app
+      - runner_node_modules:/app/node_modules
+      - ./workspace-data:/workspace-data
+      - /var/run/docker.sock:/var/run/docker.sock
 
   frontend:
     build:
@@ -41,6 +77,7 @@ services:
         };
         EOF
         npm run start -- --poll 1000
+    container_name: frontend
     environment:
       CHOKIDAR_USEPOLLING: "true"
       NG_APP_API_URL: ${NG_APP_API_URL:-http://localhost:3000}
@@ -59,3 +96,4 @@ volumes:
   backend_node_modules:
   frontend_node_modules:
   frontend_public:
+  runner_node_modules:

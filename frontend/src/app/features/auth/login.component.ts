@@ -6,13 +6,18 @@ import { AuthService } from './auth.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="row justify-content-center align-items-center" style="min-height: calc(100vh - 120px);">
-      <div class="col-12 col-md-7 col-xl-5">
-        <div class="surface p-4 p-md-5">
-          <h1 class="h3 fw-semibold mb-3">Sign in to your agent workspaces</h1>
-          <p class="muted mb-4">Use Google login to access private research sessions, files, and generated artifacts.</p>
-          <button type="button" class="btn btn-primary w-100" (click)="signIn()">Continue with Google</button>
+    <section class="auth-screen">
+      <div class="auth-panel">
+        <div class="auth-brand">
+          <span class="brand-icon large">CS</span>
+          <h1>Codex Skilled</h1>
         </div>
+        <p>Sign in to continue to your agent workspaces.</p>
+        <button type="button" class="btn-console btn-primary-console auth-button" (click)="signIn()">
+          <span class="google-dot">G</span>
+          Continue with Google
+        </button>
+        <p class="auth-legal">Private research sessions, files, and generated artifacts stay scoped to your account.</p>
       </div>
     </section>
   `
@@ -24,4 +29,3 @@ export class LoginComponent {
     void this.auth.signInWithGoogle();
   }
 }
-
